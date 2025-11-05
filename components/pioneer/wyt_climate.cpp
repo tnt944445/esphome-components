@@ -339,6 +339,8 @@ void WytClimate::switch_to_mode_(climate::ClimateMode mode) {
       this->command.mode = CmdMode::Dry;
       break;
     case climate::CLIMATE_MODE_AUTO:
+      this->command.mode = CmdMode::Auto;
+      break;
     default:
       // we cannot report an invalid mode back to HA (even if it asked for one)
       //  and must assume some valid value
