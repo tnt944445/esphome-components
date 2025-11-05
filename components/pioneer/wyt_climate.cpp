@@ -532,7 +532,7 @@ climate::ClimateAction WytClimate::get_action() {
     case climate::CLIMATE_MODE_FAN_ONLY:
       return climate::CLIMATE_ACTION_FAN;
     case climate::CLIMATE_MODE_AUTO:
-      return climate::CLIMATE_ACTION_IDLE;
+      return climate::CLIMATE_ACTION_AUTO;
     default:
       ESP_LOGE(TAG, "Unknown mode: %s", climate::climate_mode_to_string(this->get_mode()));
       return climate::CLIMATE_ACTION_OFF;
