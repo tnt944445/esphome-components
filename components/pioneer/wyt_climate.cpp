@@ -576,7 +576,9 @@ climate::ClimateAction WytClimate::get_action() {
     case climate::CLIMATE_MODE_FAN_ONLY:
       return climate::CLIMATE_ACTION_FAN;
     case climate::CLIMATE_MODE_HEAT_COOL:
-      return climate::CLIMATE_ACTION_AUTO;
+      if (this->state_.heat_mode)
+        return climate::CLIMATE_ACTION_HEATING;
+      return climate::CLIMATE_ACTION_COOLING;
     default:
       ESP_LOGE(TAG, "Unknown mode: %s", climate::climate_mode_to_string(this->get_mode()));
       return climate::CLIMATE_ACTION_OFF;
