@@ -92,6 +92,9 @@ bool WytClimate::query_state_(bool read_only) {
   }
 
   StateResponse new_state = response_from_bytes(this->raw_state_);
+  ESP_LOGD(TAG, "Received state: Mode=%d, SetpointWhole=%d (raw nibble), SetpointHalf=%d, CalcSetpoint=%.1f", 
+           (int)new_state.mode, (int)new_state.setpoint_whole, (int)new_state.setpoint_half_digit, 
+           16.0 + new_state.setpoint_whole + (new_state.setpoint_half_digit ? 0.5 : 0));
   StateResponse old_state = this->state_;
   this->state_ = new_state;
 
@@ -672,6 +675,7 @@ void WytClimate::set_temperature_(SetCommand &command, const float temp_c) {
   bool temp_half = temp_double % 2;
   command.setpoint_whole = 0x6f - temp_whole;
   command.setpoint_half_digit = temp_half;
+  ESP_LOGD(TAG, "Setting temp: %.1f, whole: %d, double: %d, cmd_whole: 0x%02X", temp_c, temp_whole, temp_double, command.setpoint_whole);
 }
 
 #ifdef USE_REMOTE_TRANSMITTER
