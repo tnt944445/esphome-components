@@ -222,7 +222,7 @@ climate::ClimateTraits WytClimate::traits() {
   traits.set_supports_action(true);
   traits.set_supports_current_temperature(true);
 
-  traits.add_supported_mode(climate::CLIMATE_MODE_AUTO);
+  traits.add_supported_mode(climate::CLIMATE_MODE_HEAT_COOL);
   traits.add_supported_mode(climate::CLIMATE_MODE_COOL);
   traits.add_supported_mode(climate::CLIMATE_MODE_DRY);
   traits.add_supported_mode(climate::CLIMATE_MODE_FAN_ONLY);
@@ -338,14 +338,14 @@ void WytClimate::switch_to_mode_(climate::ClimateMode mode) {
     case climate::CLIMATE_MODE_DRY:
       this->command.mode = CmdMode::Dry;
       break;
-    case climate::CLIMATE_MODE_AUTO:
+    case climate::CLIMATE_MODE_HEAT_COOL:
       this->command.mode = CmdMode::Auto;
       break;
     default:
       // we cannot report an invalid mode back to HA (even if it asked for one)
       //  and must assume some valid value
       this->command.mode = CmdMode::Auto;
-      mode = climate::CLIMATE_MODE_AUTO;
+      mode = climate::CLIMATE_MODE_HEAT_COOL;
   }
 
   this->mode = mode;
@@ -533,7 +533,7 @@ climate::ClimateAction WytClimate::get_action() {
       return climate::CLIMATE_ACTION_DRYING;
     case climate::CLIMATE_MODE_FAN_ONLY:
       return climate::CLIMATE_ACTION_FAN;
-    case climate::CLIMATE_MODE_AUTO:
+    case climate::CLIMATE_MODE_HEAT_COOL:
       return climate::CLIMATE_ACTION_AUTO;
     default:
       ESP_LOGE(TAG, "Unknown mode: %s", climate::climate_mode_to_string(this->get_mode()));
@@ -546,7 +546,7 @@ climate::ClimateMode WytClimate::get_mode() {
     return climate::CLIMATE_MODE_OFF;
   switch (this->state_.mode) {
     case Mode::Auto:
-      return climate::CLIMATE_MODE_AUTO;
+      return climate::CLIMATE_MODE_HEAT_COOL;
     case Mode::Cool:
       return climate::CLIMATE_MODE_COOL;
     case Mode::Dry:
@@ -693,7 +693,7 @@ IrGeneralCommand WytClimate::get_general_command_from_state() {
     case climate::CLIMATE_MODE_HEAT:
       command.mode = IrMode::Heat;
       break;
-    case climate::CLIMATE_MODE_AUTO:
+    case climate::CLIMATE_MODE_HEAT_COOL:
     default:
       command.mode = IrMode::Auto;
   }
