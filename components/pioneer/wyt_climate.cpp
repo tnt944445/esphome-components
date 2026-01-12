@@ -145,7 +145,7 @@ bool WytClimate::query_state_(bool read_only) {
   }
 
   // Always update Read-Only properties (Sensors)
-  this->update_property_(this->action, this->get_action(), changed);
+  // this->update_property_(this->action, this->get_action(), changed);
   this->update_property_(this->current_temperature, this->get_temperature(), changed);
 
   if (changed)
@@ -261,7 +261,7 @@ void WytClimate::control(const climate::ClimateCall &call) {
 
 climate::ClimateTraits WytClimate::traits() {
   auto traits = climate::ClimateTraits();
-  traits.add_feature_flags(climate::CLIMATE_SUPPORTS_ACTION | climate::CLIMATE_SUPPORTS_CURRENT_TEMPERATURE);
+  traits.add_feature_flags(climate::CLIMATE_SUPPORTS_CURRENT_TEMPERATURE);
 
   traits.add_supported_mode(climate::CLIMATE_MODE_HEAT_COOL);
   traits.add_supported_mode(climate::CLIMATE_MODE_COOL);
