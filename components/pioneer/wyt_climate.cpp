@@ -72,18 +72,7 @@ bool WytClimate::query_state_(bool read_only) {
     return false;
   }
 
-  bool state_changed = false;                          // FIXME: Cleanup
-  for (int i = 0; i < WYT_QUERY_RESPONSE_SIZE; i++) {  // FIXME: Copy the whole array at once later instead of looping
-    if (i != 18 && i != 30 && i != 34 && i != 35 && i != 36 && i != 37 && i != 38 && i != 39 && i != 45 && i != 46 &&
-        i != 60 && this->raw_state_[i] != buf_state_[i]) {
-      ESP_LOGI(TAG, "State changed at %d: 0x%x -> 0x%x", i, this->raw_state_[i], buf_state_[i]);
-      state_changed = true;
-    }
-    this->raw_state_[i] = buf_state_[i];
-  }
-  if (state_changed) {
-    ESP_LOGI(TAG, "Response: %s", format_hex_pretty(buf_state_, WYT_QUERY_RESPONSE_SIZE).c_str());  // FIXME: Cleanup
-  }
+  memcpy(this->raw_state_, buf_state_, WYT_QUERY_RESPONSE_SIZE);
 
   uint8_t checksum = this->raw_state_[WYT_QUERY_RESPONSE_SIZE - 1];
   if (checksum != this->response_checksum(this->raw_state_)) {
@@ -103,29 +92,45 @@ bool WytClimate::query_state_(bool read_only) {
   // the 'old' state from the device during the transition period.
 
   // 1. Mode (Power + Mode)
+  bool inside_optimistic_window = (millis() - this->last_command_timestamp_) < OPTIMISTIC_UPDATE_WINDOW;
+
   if (new_state.power != old_state.power || new_state.mode != old_state.mode) {
-    changed = true;
-    this->update_property_(this->mode, this->get_mode(), changed);
+    auto new_mode_val = this->get_mode();
+    if (new_mode_val != this->mode && inside_optimistic_window) {
+      ESP_LOGD(TAG, "Ignoring stale mode update during optimistic window: %s",
+               climate::climate_mode_to_string(new_mode_val));
+    } else {
+      changed = true;
+      this->update_property_(this->mode, new_mode_val, changed);
+    }
   }
 
   // 2. Fan Mode (FanSpeed + Mute + Turbo)
   if (new_state.fan_speed != old_state.fan_speed || new_state.mute != old_state.mute ||
       new_state.turbo != old_state.turbo) {
-    changed = true;
-    // Standard Fan Mode
-    this->update_property_(this->fan_mode, this->get_pioneer_fan_mode(), changed);
+    auto new_fan_mode = this->get_pioneer_fan_mode();
+    auto new_custom_fan_mode = this->get_pioneer_custom_fan_mode();
 
-    // Custom Fan Mode
-    auto c_f_mode = this->get_pioneer_custom_fan_mode();
-    if (c_f_mode.has_value()) {
-      if (!this->has_custom_fan_mode() || (c_f_mode.value() != this->get_custom_fan_mode())) {
-        this->set_custom_fan_mode_(c_f_mode->c_str());
-        changed = true;
-      }
+    if (inside_optimistic_window &&
+        (new_fan_mode != this->fan_mode || new_custom_fan_mode != this->custom_fan_mode)) {
+      ESP_LOGD(TAG, "Ignoring stale fan mode update during optimistic window");
     } else {
-      if (this->has_custom_fan_mode()) {
-        this->set_custom_fan_mode_({});
-        changed = true;
+      changed = true;
+      // Standard Fan Mode
+      this->update_property_(this->fan_mode, new_fan_mode, changed);
+
+      // Custom Fan Mode
+      auto c_f_mode = new_custom_fan_mode;
+      if (c_f_mode.has_value()) {
+        if (!this->has_custom_fan_mode() || (c_f_mode.value() != this->get_custom_fan_mode())) {
+          this->set_custom_fan_mode_(c_f_mode->c_str());
+          changed = true;
+        }
+      } else {
+        if (this->has_custom_fan_mode()) {
+          this->set_custom_fan_mode_({});
+          changed = true;
+        }
       }
     }
   }
@@ -133,15 +138,26 @@ bool WytClimate::query_state_(bool read_only) {
   // 3. Swing Mode (H + V Flow + LeftRight/UpDown specific flows)
   if (new_state.horizontal_flow != old_state.horizontal_flow || new_state.vertical_flow != old_state.vertical_flow ||
       new_state.left_right_flow != old_state.left_right_flow || new_state.up_down_flow != old_state.up_down_flow) {
-    changed = true;
-    this->update_property_(this->swing_mode, this->get_swing_mode(), changed);
+    auto new_swing_mode = this->get_swing_mode();
+    if (new_swing_mode != this->swing_mode && inside_optimistic_window) {
+      ESP_LOGD(TAG, "Ignoring stale swing mode update during optimistic window: %s",
+               climate::climate_swing_mode_to_string(new_swing_mode));
+    } else {
+      changed = true;
+      this->update_property_(this->swing_mode, this->get_swing_mode(), changed);
+    }
   }
 
   // 4. Target Temperature (Setpoint Whole + Half)
   if (new_state.setpoint_whole != old_state.setpoint_whole ||
       new_state.setpoint_half_digit != old_state.setpoint_half_digit) {
-    changed = true;
-    this->update_property_(this->target_temperature, this->get_setpoint(), changed);
+    auto new_target_temp = this->get_setpoint();
+    if (new_target_temp != this->target_temperature && inside_optimistic_window) {
+      ESP_LOGD(TAG, "Ignoring stale target temperature update during optimistic window: %.1f", new_target_temp);
+    } else {
+      changed = true;
+      this->update_property_(this->target_temperature, this->get_setpoint(), changed);
+    }
   }
 
   // Always update Read-Only properties (Sensors)
@@ -542,11 +558,7 @@ void WytClimate::send_command(SetCommand &command) {
   ESP_LOGI(TAG, "Send: %s", format_hex_pretty(command.bytes, WYT_STATE_COMMAND_SIZE).c_str());
   this->write_array(command.bytes, WYT_STATE_COMMAND_SIZE);
   this->flush();
-  /*
-  Wait N cycles to publish state after sending a command to reduce flip-flopping in the UI
-  when changing multiple options in quick succession.
-  */
-  this->busy_ = this->command_delay_;
+  this->last_command_timestamp_ = millis();
 }
 
 StateResponse WytClimate::response_from_bytes(const uint8_t buffer[WYT_QUERY_RESPONSE_SIZE]) {

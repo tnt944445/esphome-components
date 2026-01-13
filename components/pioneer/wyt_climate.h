@@ -358,6 +358,8 @@ class WytClimate : public climate::Climate, public PollingComponent, public uart
 
   uint8_t busy_{0};
   uint8_t command_delay_{2};
+  uint32_t last_command_timestamp_{0};
+  static const uint32_t OPTIMISTIC_UPDATE_WINDOW = 5000;
 
   // The current state of the extra sensors
   bool defrosting_{false};
