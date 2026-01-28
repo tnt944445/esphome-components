@@ -111,8 +111,12 @@ bool WytClimate::query_state_(bool read_only) {
     auto new_fan_mode = this->get_pioneer_fan_mode();
     auto new_custom_fan_mode = this->get_pioneer_custom_fan_mode();
 
+    optional<std::string> current_custom_fan_mode;
+    if (this->has_custom_fan_mode())
+      current_custom_fan_mode = this->get_custom_fan_mode();
+
     if (inside_optimistic_window &&
-        (new_fan_mode != this->fan_mode || new_custom_fan_mode != this->custom_fan_mode)) {
+        (new_fan_mode != this->fan_mode || new_custom_fan_mode != current_custom_fan_mode)) {
       ESP_LOGD(TAG, "Ignoring stale fan mode update during optimistic window");
     } else {
       changed = true;
