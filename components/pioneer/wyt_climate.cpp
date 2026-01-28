@@ -113,7 +113,7 @@ bool WytClimate::query_state_(bool read_only) {
 
     optional<std::string> current_custom_fan_mode;
     if (this->has_custom_fan_mode())
-      current_custom_fan_mode = this->get_custom_fan_mode();
+      current_custom_fan_mode = this->get_custom_fan_mode().str();
 
     if (inside_optimistic_window &&
         (new_fan_mode != this->fan_mode || new_custom_fan_mode != current_custom_fan_mode)) {
