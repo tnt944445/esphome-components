@@ -395,7 +395,7 @@ class WytClimate : public climate::Climate, public PollingComponent, public uart
   void switch_to_custom_fan_mode_(std::string custom_fan_mode);
 
   void set_fan_mode_(climate::ClimateFanMode fan_mode);
-  void set_custom_fan_mode_(const char *custom_fan_mode);
+  void set_custom_fan_mode_(const std::string &custom_fan_mode);
 
   // Switch the climate device to the given climate mode.
   void switch_to_mode_(climate::ClimateMode mode);
