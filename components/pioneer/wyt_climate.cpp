@@ -94,6 +94,10 @@ bool WytClimate::query_state_(bool read_only) {
   // 1. Mode (Power + Mode)
   bool inside_optimistic_window = (millis() - this->last_command_timestamp_) < OPTIMISTIC_UPDATE_WINDOW;
 
+  if (inside_optimistic_window) {
+    ESP_LOGD(TAG, "Optimistic window active (last_cmd: %u, now: %u)", this->last_command_timestamp_, millis());
+  }
+
   if (new_state.power != old_state.power || new_state.mode != old_state.mode) {
     auto new_mode_val = this->get_mode();
     if (new_mode_val != this->mode && inside_optimistic_window) {
@@ -377,6 +381,16 @@ void WytClimate::switch_to_custom_fan_mode_(std::string custom_fan_mode) {
 
   // Clear any fan modes, this is highlander rules
   this->set_custom_fan_mode_(custom_fan_mode.c_str());
+}
+
+void WytClimate::set_fan_mode_(climate::ClimateFanMode fan_mode) {
+  this->fan_mode = fan_mode;
+  this->custom_fan_mode.reset();
+}
+
+void WytClimate::set_custom_fan_mode_(const std::string &custom_fan_mode) {
+  this->custom_fan_mode = custom_fan_mode;
+  this->fan_mode.reset();
 }
 
 void WytClimate::switch_to_mode_(climate::ClimateMode mode) {
