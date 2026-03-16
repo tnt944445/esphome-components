@@ -4,7 +4,9 @@
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/hal.h"
+#define private public
 #include "esphome/components/climate/climate.h"
+#undef private
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/components/sensor/sensor.h"
 
@@ -367,6 +369,8 @@ class WytClimate : public climate::Climate, public PollingComponent, public uart
   uint8_t outdoor_fan_speed_{0};
   int outdoor_temperature_{0};
   int power_usage_{0};
+
+  std::string custom_fan_mode_s_;
 
   // The new command to send to the WYT MCU
   SetCommand command;

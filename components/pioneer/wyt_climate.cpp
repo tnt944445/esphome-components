@@ -385,11 +385,12 @@ void WytClimate::switch_to_custom_fan_mode_(std::string custom_fan_mode) {
 
 void WytClimate::set_fan_mode_(climate::ClimateFanMode fan_mode) {
   this->fan_mode = fan_mode;
-  this->set_custom_fan_mode("");
+  this->custom_fan_mode_ = nullptr;
 }
 
 void WytClimate::set_custom_fan_mode_(const std::string &custom_fan_mode) {
-  this->set_custom_fan_mode(custom_fan_mode);
+  this->custom_fan_mode_s_ = custom_fan_mode;
+  this->custom_fan_mode_ = this->custom_fan_mode_s_.c_str();
   this->fan_mode.reset();
 }
 
