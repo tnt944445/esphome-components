@@ -281,6 +281,7 @@ void WytClimate::control(const climate::ClimateCall &call) {
 
   // make any changes happen
   this->refresh();
+  this->publish_state();
 }
 
 climate::ClimateTraits WytClimate::traits() {
@@ -578,6 +579,12 @@ void WytClimate::send_command(SetCommand &command) {
   this->write_array(command.bytes, WYT_STATE_COMMAND_SIZE);
   this->flush();
   this->last_command_timestamp_ = millis();
+
+  this->set_timeout("query_state", 1000, [this]() {
+    ESP_LOGD(TAG, "Executing deferred status query after command");
+    this->query_state_();
+    this->update_sensors_();
+  });
 }
 
 StateResponse WytClimate::response_from_bytes(const uint8_t buffer[WYT_QUERY_RESPONSE_SIZE]) {
